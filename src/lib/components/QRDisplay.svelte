@@ -10,6 +10,7 @@
 
 	let qrDataUrl = $state('');
 	let currentToken = $state('');
+	let stampUrl = $state('');
 	let loading = $state(false);
 	let error = $state('');
 
@@ -38,6 +39,7 @@
 
 			// Generate QR code
 			const url = `${window.location.origin}/stamp/${establishmentId}?token=${token}`;
+			stampUrl = url;
 			qrDataUrl = await QRCode.toDataURL(url, {
 				width: 300,
 				margin: 2,
@@ -70,6 +72,11 @@
 		<div class="qr-container">
 			<img src={qrDataUrl} alt="QR Code" />
 		</div>
+		{#if stampUrl}
+			<div class="url-display">
+				<input type="text" readonly value={stampUrl} class="url-input" />
+			</div>
+		{/if}
 		<div class="actions">
 			<button onclick={generateQR} class="refresh-btn">
 				🔄 Generate New QR Code
@@ -103,6 +110,23 @@
 		display: block;
 		width: 250px;
 		height: 250px;
+	}
+
+	.url-display {
+		width: 100%;
+		max-width: 300px;
+	}
+
+	.url-input {
+		width: 100%;
+		padding: 0.5rem;
+		border: 1px solid #e5e7eb;
+		border-radius: 6px;
+		font-size: 0.75rem;
+		font-family: monospace;
+		text-align: center;
+		background: #f9fafb;
+		color: #374151;
 	}
 
 	.actions {

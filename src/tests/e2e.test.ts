@@ -33,8 +33,15 @@ describe('Environment Variables', () => {
 
 describe('Token Security', () => {
 	it('should generate cryptographically secure tokens', () => {
-		const token1 = crypto.randomBytes(32).toString('hex');
-		const token2 = crypto.randomBytes(32).toString('hex');
+		// Use Web Crypto API which is available in jsdom environment
+		const generateToken = () => {
+			const bytes = new Uint8Array(32);
+			crypto.getRandomValues(bytes);
+			return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+		};
+
+		const token1 = generateToken();
+		const token2 = generateToken();
 
 		expect(token1).toHaveLength(64);
 		expect(token2).toHaveLength(64);

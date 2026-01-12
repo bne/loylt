@@ -27,34 +27,40 @@ Multi-tenant QR-based loyalty stamp card system built with SvelteKit and Postgre
 ### Getting Started
 
 1. **Clone and install dependencies**:
+
    ```bash
    npm install
    ```
 
 2. **Start the development environment**:
+
    ```bash
    docker-compose up
    ```
+
    This starts both PostgreSQL and the SvelteKit dev server.
 
 3. **Run database migrations** (in a new terminal):
+
    ```bash
-   npm run migrate
+   docker compose exec app npm run migrate
    ```
 
 4. **Seed test data** (optional):
+
    ```bash
-   npm run seed
+   docker compose exec app npm run seed
    ```
+
    This creates a test establishment with ID and password displayed in the output.
 
 5. **Access the application**:
-   - App: http://localhost:5173
-   - Setup page: http://localhost:5173/setup
+   - App: <http://localhost:5173>
+   - Setup page: <http://localhost:5173/setup>
 
 ## Project Structure
 
-```
+```text
 src/
 ├── lib/
 │   ├── components/       # Svelte components
@@ -107,14 +113,16 @@ scripts/
 
 ## Database Schema
 
-**establishments**
+### establishments
+
 - `id` (UUID, primary key)
 - `name` (VARCHAR)
 - `password_hash` (VARCHAR)
 - `grid_size` (INTEGER, default 9)
 - `created_at` (TIMESTAMP)
 
-**transactions**
+### transactions
+
 - `id` (UUID, primary key)
 - `token` (VARCHAR, unique)
 - `establishment_id` (UUID, foreign key)
@@ -126,13 +134,15 @@ scripts/
 ## Environment Variables
 
 Development (`.env`):
-```
+
+```sh
 DATABASE_URL=postgresql://loylt:loylt_dev@localhost:5432/loylt
 PASSWORD_SALT=dev_salt_change_in_production
 ```
 
 Production (Vercel):
-```
+
+```sh
 POSTGRES_URL=<vercel-postgres-url>
 PASSWORD_SALT=<secure-random-salt>
 ```
@@ -165,6 +175,7 @@ Comprehensive test suite covering unit tests, integration tests, and E2E tests.
 See [TESTING.md](TESTING.md) for detailed testing documentation.
 
 ### Quick Start
+
 ```bash
 # Run all tests
 npm test

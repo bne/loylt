@@ -3,7 +3,22 @@ import { Pool } from 'pg';
 
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL || 'postgresql://loylt:loylt_dev@localhost:5432/loylt_test';
 
-describe('Database Integration Tests', () => {
+// Check if database is available before running tests
+const canConnect = async (): Promise<boolean> => {
+	const testPool = new Pool({ connectionString: TEST_DATABASE_URL, connectionTimeoutMillis: 2000 });
+	try {
+		await testPool.query('SELECT 1');
+		await testPool.end();
+		return true;
+	} catch {
+		await testPool.end().catch(() => {});
+		return false;
+	}
+};
+
+// These tests require a running database
+// Run with: TEST_DATABASE_URL=postgresql://user:pass@localhost:5432/test_db npm test
+describe.skipIf(!(await canConnect()))('Database Integration Tests', () => {
 	let pool: Pool;
 
 	beforeAll(async () => {

@@ -158,9 +158,16 @@ describe('QR Code Generation Flow', () => {
 	it('should generate unique token for each QR code', () => {
 		const tokens = new Set();
 
+		// Use Web Crypto API which is available in jsdom environment
+		const generateToken = () => {
+			const bytes = new Uint8Array(32);
+			crypto.getRandomValues(bytes);
+			return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+		};
+
 		// Generate multiple tokens
 		for (let i = 0; i < 10; i++) {
-			const token = crypto.randomBytes(32).toString('hex');
+			const token = generateToken();
 			tokens.add(token);
 		}
 
