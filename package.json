@@ -1,0 +1,46 @@
+{
+	"name": "loylt",
+	"private": true,
+	"version": "0.0.1",
+	"type": "module",
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "vite preview",
+		"prepare": "svelte-kit sync || echo ''",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"migrate": "node scripts/migrate.js",
+		"seed": "node scripts/seed.js",
+		"test": "vitest",
+		"test:ui": "vitest --ui",
+		"test:coverage": "vitest --coverage"
+	},
+	"devDependencies": {
+		"@sveltejs/adapter-auto": "^7.0.0",
+		"@sveltejs/adapter-node": "^5.5.0",
+		"@sveltejs/adapter-vercel": "^6.3.0",
+		"@sveltejs/kit": "^2.49.1",
+		"@sveltejs/vite-plugin-svelte": "^6.2.1",
+		"@testing-library/jest-dom": "^6.9.1",
+		"@testing-library/svelte": "^5.3.1",
+		"@vitest/ui": "^4.0.17",
+		"jsdom": "^27.4.0",
+		"svelte": "^5.45.6",
+		"svelte-check": "^4.3.4",
+		"typescript": "^5.9.3",
+		"vite": "^7.2.6",
+		"vitest": "^4.0.17"
+	},
+	"dependencies": {
+		"@types/bcrypt": "^6.0.0",
+		"@types/pg": "^8.16.0",
+		"@types/qrcode": "^1.5.6",
+		"@types/uuid": "^10.0.0",
+		"@vercel/postgres": "^0.10.0",
+		"bcrypt": "^6.0.0",
+		"pg": "^8.16.3",
+		"qrcode": "^1.5.4",
+		"uuid": "^13.0.0"
+	}
+}
