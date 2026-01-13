@@ -70,10 +70,10 @@ describe('StampGrid Component', () => {
 			props: { gridSize: 16, filledCount: 0 }
 		});
 
-		const gridContainer = container.querySelector('.grid-container');
-		const style = getComputedStyle(gridContainer!);
+		const gridContainer = container.querySelector('.grid-container') as HTMLElement;
+		const style = getComputedStyle(gridContainer);
 		// sqrt(16) = 4, so --cols should be 4
-		expect(gridContainer?.style.getPropertyValue('--cols')).toBe('4');
+		expect(gridContainer.style.getPropertyValue('--cols')).toBe('4');
 	});
 
 	it('should handle non-square grids', () => {
@@ -84,8 +84,8 @@ describe('StampGrid Component', () => {
 		const cells = container.querySelectorAll('.cell');
 		expect(cells).toHaveLength(10);
 
-		const gridContainer = container.querySelector('.grid-container');
+		const gridContainer = container.querySelector('.grid-container') as HTMLElement;
 		// ceil(sqrt(10)) = 4
-		expect(gridContainer?.style.getPropertyValue('--cols')).toBe('4');
+		expect(gridContainer.style.getPropertyValue('--cols')).toBe('4');
 	});
 });
