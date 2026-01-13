@@ -1,11 +1,15 @@
 import { defineConfig } from 'vitest/config';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import path from 'path';
 
 export default defineConfig({
 	plugins: [
 		svelte()
 	],
 	resolve: {
+		alias: {
+			$lib: path.resolve(__dirname, './src/lib')
+		},
 		// Ensure Svelte resolves to the browser/client bundle, not server
 		conditions: ['browser', 'import', 'module', 'default']
 	},
@@ -14,10 +18,6 @@ export default defineConfig({
 		globals: true,
 		environment: 'jsdom',
 		setupFiles: ['./src/tests/setup.ts'],
-		alias: {
-			'$lib': '/home/ben/projects/loylt/src/lib',
-			'$lib/': '/home/ben/projects/loylt/src/lib/'
-		},
 		coverage: {
 			provider: 'v8',
 			reporter: ['text', 'json', 'html'],
