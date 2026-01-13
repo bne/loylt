@@ -155,7 +155,32 @@ PASSWORD_SALT=<secure-random-salt>
 2. Set up Vercel Postgres database
 3. Configure environment variables in Vercel dashboard
 4. Deploy: `vercel --prod`
-5. Run migrations on production database
+5. **Run migrations on production database**:
+
+   ```bash
+   # Link your project (first time only)
+   vercel link
+
+   # Pull environment variables from Vercel
+   vercel env pull .env.production
+
+   # Run migrations using production database
+   DATABASE_URL=$(grep POSTGRES_URL .env.production | cut -d '=' -f2-) node scripts/migrate.js
+   ```
+
+   **Verify migrations**:
+
+   ```bash
+   # Connect to production database
+   psql "your-postgres-url-from-vercel"
+
+   # Check tables were created
+   \dt
+
+   # Verify table structure
+   \d establishments
+   \d transactions
+   ```
 
 ## Scripts
 
