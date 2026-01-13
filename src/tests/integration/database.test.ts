@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { Pool } from 'pg';
+import { randomUUID } from 'crypto';
 
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL || 'postgresql://loylt:loylt_dev@localhost:5432/loylt_test';
 
@@ -56,7 +57,7 @@ describe.skipIf(!(await canConnect()))('Database Integration Tests', () => {
 	});
 
 	it('should create and retrieve establishment', async () => {
-		const establishmentId = 'test-est-' + Date.now();
+		const establishmentId = randomUUID();
 
 		await pool.query(
 			'INSERT INTO establishments (id, name, password_hash, grid_size) VALUES ($1, $2, $3, $4)',
@@ -74,9 +75,10 @@ describe.skipIf(!(await canConnect()))('Database Integration Tests', () => {
 	});
 
 	it('should create transaction and validate token', async () => {
-		const establishmentId = 'test-est-' + Date.now();
-		const tokenId = 'test-token-' + Date.now();
+		const establishmentId = randomUUID();
+		const tokenId = randomUUID();
 		const token = 'unique-token-' + Date.now();
+		const customerGuid = randomUUID();
 
 		// Create establishment first
 		await pool.query(
@@ -103,7 +105,7 @@ describe.skipIf(!(await canConnect()))('Database Integration Tests', () => {
 		// Mark as used
 		await pool.query(
 			'UPDATE transactions SET used = true, customer_guid = $1, used_at = NOW() WHERE id = $2',
-			['customer-guid-123', tokenId]
+			[customerGuid, tokenId]
 		);
 
 		// Verify it's marked as used
@@ -113,13 +115,13 @@ describe.skipIf(!(await canConnect()))('Database Integration Tests', () => {
 		);
 
 		expect(usedResult.rows[0].used).toBe(true);
-		expect(usedResult.rows[0].customer_guid).toBe('customer-guid-123');
+		expect(usedResult.rows[0].customer_guid).toBe(customerGuid);
 	});
 
 	it('should calculate analytics correctly', async () => {
-		const establishmentId = 'test-est-analytics-' + Date.now();
-		const customerGuid1 = 'customer-1';
-		const customerGuid2 = 'customer-2';
+		const establishmentId = randomUUID();
+		const customerGuid1 = randomUUID();
+		const customerGuid2 = randomUUID();
 
 		// Create establishment
 		await pool.query(
@@ -131,14 +133,14 @@ describe.skipIf(!(await canConnect()))('Database Integration Tests', () => {
 		for (let i = 0; i < 5; i++) {
 			await pool.query(
 				'INSERT INTO transactions (id, token, establishment_id, customer_guid, used) VALUES ($1, $2, $3, $4, true)',
-				[`trans-${i}`, `token-${i}`, establishmentId, customerGuid1]
+				[randomUUID(), `token-${Date.now()}-${i}`, establishmentId, customerGuid1]
 			);
 		}
 
 		for (let i = 5; i < 8; i++) {
 			await pool.query(
 				'INSERT INTO transactions (id, token, establishment_id, customer_guid, used) VALUES ($1, $2, $3, $4, true)',
-				[`trans-${i}`, `token-${i}`, establishmentId, customerGuid2]
+				[randomUUID(), `token-${Date.now()}-${i}`, establishmentId, customerGuid2]
 			);
 		}
 
@@ -168,18 +170,18 @@ describe.skipIf(!(await canConnect()))('Database Integration Tests', () => {
 	});
 
 	it('should enforce foreign key constraint', async () => {
-		const nonExistentEstId = 'non-existent-id';
+		const nonExistentEstId = randomUUID();
 
 		await expect(
 			pool.query(
 				'INSERT INTO transactions (id, token, establishment_id, used) VALUES ($1, $2, $3, false)',
-				['trans-fk-test', 'token-fk-test', nonExistentEstId]
+				[randomUUID(), 'token-fk-test', nonExistentEstId]
 			)
 		).rejects.toThrow();
 	});
 
 	it('should enforce unique token constraint', async () => {
-		const establishmentId = 'test-est-unique-' + Date.now();
+		const establishmentId = randomUUID();
 		const duplicateToken = 'duplicate-token-' + Date.now();
 
 		// Create establishment
@@ -191,14 +193,14 @@ describe.skipIf(!(await canConnect()))('Database Integration Tests', () => {
 		// Create first transaction
 		await pool.query(
 			'INSERT INTO transactions (id, token, establishment_id, used) VALUES ($1, $2, $3, false)',
-			['trans-unique-1', duplicateToken, establishmentId]
+			[randomUUID(), duplicateToken, establishmentId]
 		);
 
 		// Try to create duplicate
 		await expect(
 			pool.query(
 				'INSERT INTO transactions (id, token, establishment_id, used) VALUES ($1, $2, $3, false)',
-				['trans-unique-2', duplicateToken, establishmentId]
+				[randomUUID(), duplicateToken, establishmentId]
 			)
 		).rejects.toThrow();
 	});
