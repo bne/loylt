@@ -1,5 +1,7 @@
 # loylt
 
+## Commits
+
 - Don't disable GPG signing ask for sign in terminal
 
 ## CI/CD
