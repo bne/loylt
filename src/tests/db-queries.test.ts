@@ -108,6 +108,51 @@ describe('Database Queries', () => {
 		});
 	});
 
+	describe('verifyEstablishmentPassword', () => {
+		it('should return true when password matches', async () => {
+			const mockResult = [{ password_hash: 'hash123' }];
+			vi.mocked(query).mockResolvedValueOnce(mockResult);
+
+			const result = await queries.verifyEstablishmentPassword('est-123', 'hash123');
+
+			expect(result).toBe(true);
+			expect(query).toHaveBeenCalledWith(
+				'SELECT password_hash FROM establishments WHERE id = $1',
+				['est-123']
+			);
+		});
+
+		it('should return false when password does not match', async () => {
+			const mockResult = [{ password_hash: 'hash123' }];
+			vi.mocked(query).mockResolvedValueOnce(mockResult);
+
+			const result = await queries.verifyEstablishmentPassword('est-123', 'wrong-hash');
+
+			expect(result).toBe(false);
+		});
+
+		it('should return false when establishment not found', async () => {
+			vi.mocked(query).mockResolvedValueOnce([]);
+
+			const result = await queries.verifyEstablishmentPassword('nonexistent', 'hash123');
+
+			expect(result).toBe(false);
+		});
+	});
+
+	describe('createTransaction', () => {
+		it('should insert transaction with correct parameters', async () => {
+			vi.mocked(query).mockResolvedValueOnce([]);
+
+			await queries.createTransaction('trans-123', 'token456', 'est-789');
+
+			expect(query).toHaveBeenCalledWith(
+				'INSERT INTO transactions (id, token, establishment_id, used, created_at) VALUES ($1, $2, $3, false, NOW())',
+				['trans-123', 'token456', 'est-789']
+			);
+		});
+	});
+
 	describe('validateAndUseToken', () => {
 		it('should return valid true and mark token as used', async () => {
 			const mockTransaction = {

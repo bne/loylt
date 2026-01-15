@@ -88,4 +88,13 @@ describe('StampGrid Component', () => {
 		// ceil(sqrt(10)) = 4
 		expect(gridContainer.style.getPropertyValue('--cols')).toBe('4');
 	});
+
+	it('should handle empty grid with gridSize 0', () => {
+		const { container } = render(StampGrid, {
+			props: { gridSize: 0, filledCount: 0 }
+		});
+
+		const cells = container.querySelectorAll('.cell');
+		expect(cells).toHaveLength(0);
+	});
 });
