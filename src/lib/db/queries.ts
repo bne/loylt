@@ -12,7 +12,9 @@ export async function getEstablishment(id: string): Promise<Establishment | null
 export async function updateEstablishment(
 	id: string,
 	name?: string,
-	gridSize?: number
+	gridSize?: number,
+	rewardText?: string | null,
+	rewardImageUrl?: string | null
 ): Promise<void> {
 	const updates: string[] = [];
 	const values: any[] = [];
@@ -25,6 +27,14 @@ export async function updateEstablishment(
 	if (gridSize !== undefined) {
 		updates.push(`grid_size = $${paramIndex++}`);
 		values.push(gridSize);
+	}
+	if (rewardText !== undefined) {
+		updates.push(`reward_text = $${paramIndex++}`);
+		values.push(rewardText);
+	}
+	if (rewardImageUrl !== undefined) {
+		updates.push(`reward_image_url = $${paramIndex++}`);
+		values.push(rewardImageUrl);
 	}
 
 	if (updates.length > 0) {

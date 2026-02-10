@@ -2,6 +2,8 @@ export interface Establishment {
 	id: string;
 	name: string;
 	grid_size: number;
+	reward_text: string | null;
+	reward_image_url: string | null;
 	created_at: Date;
 }
 

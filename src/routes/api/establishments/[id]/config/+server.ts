@@ -19,7 +19,9 @@ export const GET: RequestHandler = async ({ params }) => {
 		return json({
 			id: establishment.id,
 			name: establishment.name,
-			gridSize: establishment.grid_size
+			gridSize: establishment.grid_size,
+			rewardText: establishment.reward_text,
+			rewardImageUrl: establishment.reward_image_url
 		});
 	} catch (error) {
 		console.error('Get establishment error:', error);

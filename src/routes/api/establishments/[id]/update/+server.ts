@@ -20,8 +20,8 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 			return json({ error: 'Establishment not found' }, { status: 404 });
 		}
 
-		const { name, gridSize } = await request.json();
-		await updateEstablishment(id, name, gridSize);
+		const { name, gridSize, rewardText, rewardImageUrl } = await request.json();
+		await updateEstablishment(id, name, gridSize, rewardText, rewardImageUrl);
 
 		return json({ success: true });
 	} catch (error) {

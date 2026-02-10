@@ -24,6 +24,14 @@ async function migrate() {
 			ALTER TABLE establishments DROP COLUMN IF EXISTS password_hash
 		`);
 
+		// Add reward configuration columns
+		await client.query(`
+			ALTER TABLE establishments ADD COLUMN IF NOT EXISTS reward_text TEXT
+		`);
+		await client.query(`
+			ALTER TABLE establishments ADD COLUMN IF NOT EXISTS reward_image_url TEXT
+		`);
+
 		// Create transactions table
 		await client.query(`
 			CREATE TABLE IF NOT EXISTS transactions (

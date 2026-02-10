@@ -8,6 +8,8 @@
 
 	let name = $state(data.establishment.name);
 	let gridSize = $state(data.establishment.gridSize);
+	let rewardText = $state(data.establishment.rewardText || '');
+	let rewardImageUrl = $state(data.establishment.rewardImageUrl || '');
 	let error = $state('');
 	let successMessage = $state('');
 	let loading = $state(false);
@@ -31,7 +33,12 @@
 			const response = await fetch(`/api/establishments/${establishmentId}/update`, {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ name, gridSize })
+				body: JSON.stringify({
+					name,
+					gridSize,
+					rewardText: rewardText || null,
+					rewardImageUrl: rewardImageUrl || null
+				})
 			});
 
 			if (!response.ok) {
@@ -145,6 +152,31 @@
 						required
 					/>
 				</div>
+				<div class="form-group">
+					<label for="rewardText">Reward Description</label>
+					<textarea
+						id="rewardText"
+						bind:value={rewardText}
+						placeholder="e.g. Free coffee of your choice!"
+						rows="3"
+					></textarea>
+					<small class="hint">What the customer gets when they complete their card</small>
+				</div>
+				<div class="form-group">
+					<label for="rewardImageUrl">Reward Image URL (optional)</label>
+					<input
+						type="url"
+						id="rewardImageUrl"
+						bind:value={rewardImageUrl}
+						placeholder="https://example.com/reward-image.jpg"
+					/>
+					<small class="hint">Link to an image of the reward</small>
+				</div>
+				{#if rewardImageUrl}
+					<div class="image-preview">
+						<img src={rewardImageUrl} alt="Reward preview" />
+					</div>
+				{/if}
 				{#if error}
 					<div class="error">{error}</div>
 				{/if}
@@ -313,10 +345,40 @@
 		font-size: 1rem;
 	}
 
-	input:focus {
+	input:focus, textarea:focus {
 		outline: none;
 		border-color: #0ea5e9;
 		box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+	}
+
+	textarea {
+		width: 100%;
+		padding: 0.75rem;
+		border: 1px solid #ddd;
+		border-radius: 6px;
+		font-size: 1rem;
+		font-family: inherit;
+		resize: vertical;
+	}
+
+	.hint {
+		display: block;
+		margin-top: 0.25rem;
+		font-size: 0.8rem;
+		color: #888;
+	}
+
+	.image-preview {
+		margin-bottom: 1rem;
+		border-radius: 8px;
+		overflow: hidden;
+		border: 1px solid #e5e7eb;
+	}
+
+	.image-preview img {
+		width: 100%;
+		max-height: 200px;
+		object-fit: cover;
 	}
 
 	button {
