@@ -1,5 +1,5 @@
 import { query } from './connection';
-import type { Establishment, TokenRedemption, Transaction } from './types';
+import type { AdminRole, AdminUser, Establishment, Session, TokenRedemption, Transaction } from './types';
 
 export async function getEstablishment(id: string): Promise<Establishment | null> {
 	const results = await query<Establishment>(
@@ -39,24 +39,86 @@ export async function updateEstablishment(
 export async function createEstablishment(
 	id: string,
 	name: string,
-	passwordHash: string,
 	gridSize: number = 9
 ): Promise<void> {
 	await query(
-		'INSERT INTO establishments (id, name, password_hash, grid_size) VALUES ($1, $2, $3, $4)',
-		[id, name, passwordHash, gridSize]
+		'INSERT INTO establishments (id, name, grid_size) VALUES ($1, $2, $3)',
+		[id, name, gridSize]
 	);
 }
 
-export async function verifyEstablishmentPassword(
+export async function getAllEstablishments(): Promise<Establishment[]> {
+	return query<Establishment>(
+		'SELECT * FROM establishments ORDER BY created_at DESC'
+	);
+}
+
+// --- Admin User queries ---
+
+export async function createAdminUser(
 	id: string,
-	passwordHash: string
-): Promise<boolean> {
-	const results = await query<{ password_hash: string }>(
-		'SELECT password_hash FROM establishments WHERE id = $1',
+	email: string,
+	passwordHash: string,
+	role: AdminRole,
+	establishmentId: string | null
+): Promise<void> {
+	await query(
+		'INSERT INTO admin_users (id, email, password_hash, role, establishment_id) VALUES ($1, $2, $3, $4, $5)',
+		[id, email, passwordHash, role, establishmentId]
+	);
+}
+
+export async function getAdminUserByEmail(email: string): Promise<AdminUser | null> {
+	const results = await query<AdminUser>(
+		'SELECT * FROM admin_users WHERE email = $1',
+		[email]
+	);
+	return results[0] || null;
+}
+
+export async function getAdminUserById(id: string): Promise<AdminUser | null> {
+	const results = await query<AdminUser>(
+		'SELECT * FROM admin_users WHERE id = $1',
 		[id]
 	);
-	return results.length > 0 && results[0].password_hash === passwordHash;
+	return results[0] || null;
+}
+
+export async function getAdminsByEstablishment(establishmentId: string): Promise<AdminUser[]> {
+	return query<AdminUser>(
+		'SELECT * FROM admin_users WHERE establishment_id = $1 ORDER BY created_at ASC',
+		[establishmentId]
+	);
+}
+
+export async function deleteAdminUser(id: string): Promise<void> {
+	await query('DELETE FROM admin_users WHERE id = $1', [id]);
+}
+
+// --- Session queries ---
+
+const SESSION_DURATION_HOURS = 24 * 7; // 7 days
+
+export async function createSession(id: string, userId: string): Promise<Session> {
+	const results = await query<Session>(
+		`INSERT INTO sessions (id, user_id, expires_at) VALUES ($1, $2, NOW() + INTERVAL '${SESSION_DURATION_HOURS} hours') RETURNING *`,
+		[id, userId]
+	);
+	return results[0];
+}
+
+export async function getSessionWithUser(sessionId: string): Promise<AdminUser | null> {
+	const results = await query<AdminUser>(
+		`SELECT u.* FROM admin_users u
+		JOIN sessions s ON s.user_id = u.id
+		WHERE s.id = $1 AND s.expires_at > NOW()`,
+		[sessionId]
+	);
+	return results[0] || null;
+}
+
+export async function deleteSession(sessionId: string): Promise<void> {
+	await query('DELETE FROM sessions WHERE id = $1', [sessionId]);
 }
 
 export async function createTransaction(

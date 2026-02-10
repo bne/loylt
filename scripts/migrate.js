@@ -14,10 +14,14 @@ async function migrate() {
 			CREATE TABLE IF NOT EXISTS establishments (
 				id UUID PRIMARY KEY,
 				name VARCHAR(255) NOT NULL,
-				password_hash VARCHAR(255) NOT NULL,
 				grid_size INTEGER DEFAULT 9,
 				created_at TIMESTAMP DEFAULT NOW()
 			)
+		`);
+
+		// Drop password_hash from establishments if it exists (moved to admin_users)
+		await client.query(`
+			ALTER TABLE establishments DROP COLUMN IF EXISTS password_hash
 		`);
 
 		// Create transactions table
@@ -44,6 +48,28 @@ async function migrate() {
 			)
 		`);
 
+		// Create admin_users table
+		await client.query(`
+			CREATE TABLE IF NOT EXISTS admin_users (
+				id UUID PRIMARY KEY,
+				email VARCHAR(255) UNIQUE NOT NULL,
+				password_hash VARCHAR(255) NOT NULL,
+				role VARCHAR(50) NOT NULL CHECK (role IN ('establishment_admin', 'superuser')),
+				establishment_id UUID REFERENCES establishments(id) ON DELETE CASCADE,
+				created_at TIMESTAMP DEFAULT NOW()
+			)
+		`);
+
+		// Create sessions table
+		await client.query(`
+			CREATE TABLE IF NOT EXISTS sessions (
+				id UUID PRIMARY KEY,
+				user_id UUID NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+				expires_at TIMESTAMP NOT NULL,
+				created_at TIMESTAMP DEFAULT NOW()
+			)
+		`);
+
 		// Create indexes
 		await client.query(`
 			CREATE INDEX IF NOT EXISTS idx_transactions_token ON transactions(token)
@@ -59,6 +85,15 @@ async function migrate() {
 		`);
 		await client.query(`
 			CREATE INDEX IF NOT EXISTS idx_token_redemptions_customer ON token_redemptions(customer_guid)
+		`);
+		await client.query(`
+			CREATE INDEX IF NOT EXISTS idx_admin_users_email ON admin_users(email)
+		`);
+		await client.query(`
+			CREATE INDEX IF NOT EXISTS idx_admin_users_establishment ON admin_users(establishment_id)
+		`);
+		await client.query(`
+			CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id)
 		`);
 
 		await client.query('COMMIT');

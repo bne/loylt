@@ -71,39 +71,54 @@ describe('API Route: Establishment Config', () => {
 });
 
 describe('API Route: Authentication', () => {
-	it('should authenticate with correct password', async () => {
-		const mockEstablishment = {
-			id: 'est-123',
-			password_hash: 'hash123'
+	it('should authenticate with correct email and password', async () => {
+		const mockUser = {
+			id: 'user-123',
+			email: 'admin@test.com',
+			password_hash: 'hash123',
+			role: 'establishment_admin',
+			establishment_id: 'est-123'
 		};
 
-		const getEstablishment = vi.fn().mockResolvedValue(mockEstablishment);
+		const getAdminUserByEmail = vi.fn().mockResolvedValue(mockUser);
 		const verifyPassword = vi.fn().mockResolvedValue(true);
 
-		const establishment = await getEstablishment('est-123');
-		const isValid = await verifyPassword('correct-password', establishment.password_hash);
+		const user = await getAdminUserByEmail('admin@test.com');
+		const isValid = await verifyPassword('correct-password', user.password_hash);
 
 		const response = isValid
-			? { status: 200, success: true }
-			: { status: 401, success: false };
+			? { status: 200, user: { id: user.id, email: user.email, role: user.role } }
+			: { status: 401, error: 'Invalid email or password' };
 
 		expect(response.status).toBe(200);
-		expect(response.success).toBe(true);
+		expect('user' in response && response.user.email).toBe('admin@test.com');
 	});
 
 	it('should reject incorrect password', async () => {
-		const mockEstablishment = {
-			id: 'est-123',
-			password_hash: 'hash123'
+		const mockUser = {
+			id: 'user-123',
+			email: 'admin@test.com',
+			password_hash: 'hash123',
+			role: 'establishment_admin',
+			establishment_id: 'est-123'
 		};
 
-		const getEstablishment = vi.fn().mockResolvedValue(mockEstablishment);
+		const getAdminUserByEmail = vi.fn().mockResolvedValue(mockUser);
 		const verifyPassword = vi.fn().mockResolvedValue(false);
 
-		const establishment = await getEstablishment('est-123');
-		const isValid = await verifyPassword('wrong-password', establishment.password_hash);
+		const user = await getAdminUserByEmail('admin@test.com');
+		const isValid = await verifyPassword('wrong-password', user.password_hash);
 
 		const status = isValid ? 200 : 401;
+		expect(status).toBe(401);
+	});
+
+	it('should reject unknown email', async () => {
+		const getAdminUserByEmail = vi.fn().mockResolvedValue(null);
+
+		const user = await getAdminUserByEmail('unknown@test.com');
+
+		const status = user ? 200 : 401;
 		expect(status).toBe(401);
 	});
 });

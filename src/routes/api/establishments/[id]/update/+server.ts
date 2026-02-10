@@ -1,29 +1,26 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getEstablishment, updateEstablishment } from '$lib/db/queries';
-import { verifyPassword } from '$lib/utils/auth';
 
-export const PUT: RequestHandler = async ({ params, request }) => {
+export const PUT: RequestHandler = async ({ params, request, locals }) => {
 	try {
-		const { id } = params;
-		const { password, name, gridSize } = await request.json();
+		const user = locals.user;
+		if (!user) {
+			return json({ error: 'Unauthorized' }, { status: 401 });
+		}
 
-		if (!id || !password) {
-			return json({ error: 'Establishment ID and password required' }, { status: 400 });
+		const { id } = params;
+
+		if (user.role === 'establishment_admin' && user.establishment_id !== id) {
+			return json({ error: 'Forbidden' }, { status: 403 });
 		}
 
 		const establishment = await getEstablishment(id);
-
 		if (!establishment) {
 			return json({ error: 'Establishment not found' }, { status: 404 });
 		}
 
-		const isValid = await verifyPassword(password, establishment.password_hash);
-
-		if (!isValid) {
-			return json({ error: 'Invalid password' }, { status: 401 });
-		}
-
+		const { name, gridSize } = await request.json();
 		await updateEstablishment(id, name, gridSize);
 
 		return json({ success: true });

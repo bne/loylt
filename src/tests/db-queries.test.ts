@@ -18,7 +18,6 @@ describe('Database Queries', () => {
 			const mockEstablishment = {
 				id: 'test-id',
 				name: 'Test Shop',
-				password_hash: 'hash123',
 				grid_size: 9,
 				created_at: new Date()
 			};
@@ -47,22 +46,22 @@ describe('Database Queries', () => {
 		it('should insert establishment with correct parameters', async () => {
 			vi.mocked(query).mockResolvedValueOnce([]);
 
-			await queries.createEstablishment('id-123', 'Coffee Shop', 'hash456', 10);
+			await queries.createEstablishment('id-123', 'Coffee Shop', 10);
 
 			expect(query).toHaveBeenCalledWith(
-				'INSERT INTO establishments (id, name, password_hash, grid_size) VALUES ($1, $2, $3, $4)',
-				['id-123', 'Coffee Shop', 'hash456', 10]
+				'INSERT INTO establishments (id, name, grid_size) VALUES ($1, $2, $3)',
+				['id-123', 'Coffee Shop', 10]
 			);
 		});
 
 		it('should use default grid size when not provided', async () => {
 			vi.mocked(query).mockResolvedValueOnce([]);
 
-			await queries.createEstablishment('id-123', 'Coffee Shop', 'hash456');
+			await queries.createEstablishment('id-123', 'Coffee Shop');
 
 			expect(query).toHaveBeenCalledWith(
-				'INSERT INTO establishments (id, name, password_hash, grid_size) VALUES ($1, $2, $3, $4)',
-				['id-123', 'Coffee Shop', 'hash456', 9]
+				'INSERT INTO establishments (id, name, grid_size) VALUES ($1, $2, $3)',
+				['id-123', 'Coffee Shop', 9]
 			);
 		});
 	});
@@ -108,35 +107,53 @@ describe('Database Queries', () => {
 		});
 	});
 
-	describe('verifyEstablishmentPassword', () => {
-		it('should return true when password matches', async () => {
-			const mockResult = [{ password_hash: 'hash123' }];
-			vi.mocked(query).mockResolvedValueOnce(mockResult);
+	describe('createAdminUser', () => {
+		it('should insert admin user with correct parameters', async () => {
+			vi.mocked(query).mockResolvedValueOnce([]);
 
-			const result = await queries.verifyEstablishmentPassword('est-123', 'hash123');
+			await queries.createAdminUser('user-123', 'admin@test.com', 'hash456', 'establishment_admin', 'est-789');
 
-			expect(result).toBe(true);
 			expect(query).toHaveBeenCalledWith(
-				'SELECT password_hash FROM establishments WHERE id = $1',
-				['est-123']
+				'INSERT INTO admin_users (id, email, password_hash, role, establishment_id) VALUES ($1, $2, $3, $4, $5)',
+				['user-123', 'admin@test.com', 'hash456', 'establishment_admin', 'est-789']
 			);
 		});
 
-		it('should return false when password does not match', async () => {
-			const mockResult = [{ password_hash: 'hash123' }];
-			vi.mocked(query).mockResolvedValueOnce(mockResult);
-
-			const result = await queries.verifyEstablishmentPassword('est-123', 'wrong-hash');
-
-			expect(result).toBe(false);
-		});
-
-		it('should return false when establishment not found', async () => {
+		it('should allow null establishment_id for superusers', async () => {
 			vi.mocked(query).mockResolvedValueOnce([]);
 
-			const result = await queries.verifyEstablishmentPassword('nonexistent', 'hash123');
+			await queries.createAdminUser('user-456', 'super@test.com', 'hash789', 'superuser', null);
 
-			expect(result).toBe(false);
+			expect(query).toHaveBeenCalledWith(
+				'INSERT INTO admin_users (id, email, password_hash, role, establishment_id) VALUES ($1, $2, $3, $4, $5)',
+				['user-456', 'super@test.com', 'hash789', 'superuser', null]
+			);
+		});
+	});
+
+	describe('getAdminUserByEmail', () => {
+		it('should return user when found', async () => {
+			const mockUser = {
+				id: 'user-123',
+				email: 'admin@test.com',
+				password_hash: 'hash456',
+				role: 'establishment_admin',
+				establishment_id: 'est-789',
+				created_at: new Date()
+			};
+			vi.mocked(query).mockResolvedValueOnce([mockUser]);
+
+			const result = await queries.getAdminUserByEmail('admin@test.com');
+
+			expect(result).toEqual(mockUser);
+		});
+
+		it('should return null when not found', async () => {
+			vi.mocked(query).mockResolvedValueOnce([]);
+
+			const result = await queries.getAdminUserByEmail('nonexistent@test.com');
+
+			expect(result).toBeNull();
 		});
 	});
 

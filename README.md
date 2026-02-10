@@ -5,9 +5,10 @@ Multi-tenant QR-based loyalty stamp card system built with SvelteKit and Postgre
 ## Features
 
 - **For Customers**: Scan QR codes to collect stamps anonymously
-- **For Establishments**: Password-protected admin dashboard to manage loyalty programs
+- **For Establishments**: Admin dashboard with per-user authentication to manage loyalty programs
+- **Superuser**: Higher-level admin view across all establishments
 - **Multi-tenant**: Support for multiple establishments in one deployment
-- **QR Code Generation**: One-time use tokens prevent fraud
+- **QR Code Generation**: Reusable tokens with per-customer deduplication prevent fraud
 - **Analytics**: Track total stamps and per-customer usage
 
 ## Tech Stack
@@ -93,16 +94,32 @@ scripts/
 ### Creating an Establishment
 
 1. Visit `/setup` page
-2. Enter establishment name and password
-3. Save the generated establishment ID and admin URL
+2. Enter establishment name, admin email, and password
+3. You'll be automatically logged in and redirected to the admin dashboard
+4. Save the generated establishment ID and admin URL
 
 ### Admin Dashboard
 
-- Access: `/admin/{establishment_id}`
-- Login with your password
+- Login at `/login` with your email and password
+- Establishment admins are redirected to their establishment dashboard
 - Generate QR codes for transactions
 - Configure stamp card size and name
+- Manage admin users (add/remove) for the establishment
 - View analytics
+
+### Creating a Superuser
+
+Superusers can view and manage all establishments. They can only be created via the command line:
+
+```bash
+# Inside Docker
+docker compose exec app npm run create-superuser -- --email admin@loylt.com --password yourpassword
+
+# Or directly (with DATABASE_URL set)
+npm run create-superuser -- --email admin@loylt.com --password yourpassword
+```
+
+Superusers log in at `/login` and see a list of all establishments at `/admin`.
 
 ### Customer Flow
 
@@ -117,19 +134,44 @@ scripts/
 
 - `id` (UUID, primary key)
 - `name` (VARCHAR)
-- `password_hash` (VARCHAR)
 - `grid_size` (INTEGER, default 9)
+- `created_at` (TIMESTAMP)
+
+### admin_users
+
+- `id` (UUID, primary key)
+- `email` (VARCHAR, unique)
+- `password_hash` (VARCHAR)
+- `role` (VARCHAR: `establishment_admin` or `superuser`)
+- `establishment_id` (UUID, foreign key → establishments, null for superusers)
+- `created_at` (TIMESTAMP)
+
+### sessions
+
+- `id` (UUID, primary key)
+- `user_id` (UUID, foreign key → admin_users)
+- `expires_at` (TIMESTAMP)
 - `created_at` (TIMESTAMP)
 
 ### transactions
 
 - `id` (UUID, primary key)
-- `token` (VARCHAR, unique)
+- `token` (VARCHAR, unique) - reusable across multiple customers
 - `establishment_id` (UUID, foreign key)
-- `customer_guid` (UUID)
-- `used` (BOOLEAN)
+- `customer_guid` (UUID, legacy)
+- `used` (BOOLEAN, legacy)
 - `created_at` (TIMESTAMP)
-- `used_at` (TIMESTAMP)
+- `used_at` (TIMESTAMP, legacy)
+
+### token_redemptions
+
+Tracks per-customer redemptions. Multiple customers can redeem the same token, but each customer can only redeem a given token once.
+
+- `id` (UUID, primary key)
+- `transaction_id` (UUID, foreign key → transactions)
+- `customer_guid` (UUID, not null)
+- `redeemed_at` (TIMESTAMP)
+- Unique constraint on `(transaction_id, customer_guid)`
 
 ## Environment Variables
 
@@ -180,6 +222,7 @@ PASSWORD_SALT=<secure-random-salt>
    # Verify table structure
    \d establishments
    \d transactions
+   \d token_redemptions
    ```
 
 ## Scripts
@@ -189,6 +232,7 @@ PASSWORD_SALT=<secure-random-salt>
 - `npm run preview` - Preview production build
 - `npm run migrate` - Run database migrations
 - `npm run seed` - Seed test data
+- `npm run create-superuser -- --email <email> --password <password>` - Create a superuser
 - `npm test` - Run all tests
 - `npm run test:ui` - Run tests with UI
 - `npm run test:coverage` - Run tests with coverage report

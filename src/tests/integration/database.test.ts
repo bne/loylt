@@ -30,7 +30,6 @@ describe.skipIf(!(await canConnect()))('Database Integration Tests', () => {
 			CREATE TABLE IF NOT EXISTS establishments (
 				id UUID PRIMARY KEY,
 				name VARCHAR(255) NOT NULL,
-				password_hash VARCHAR(255) NOT NULL,
 				grid_size INTEGER DEFAULT 9,
 				created_at TIMESTAMP DEFAULT NOW()
 			)
@@ -71,8 +70,8 @@ describe.skipIf(!(await canConnect()))('Database Integration Tests', () => {
 		const establishmentId = randomUUID();
 
 		await pool.query(
-			'INSERT INTO establishments (id, name, password_hash, grid_size) VALUES ($1, $2, $3, $4)',
-			[establishmentId, 'Integration Test Shop', 'hash123', 9]
+			'INSERT INTO establishments (id, name, grid_size) VALUES ($1, $2, $3)',
+			[establishmentId, 'Integration Test Shop', 9]
 		);
 
 		const result = await pool.query(
@@ -93,8 +92,8 @@ describe.skipIf(!(await canConnect()))('Database Integration Tests', () => {
 
 		// Create establishment first
 		await pool.query(
-			'INSERT INTO establishments (id, name, password_hash, grid_size) VALUES ($1, $2, $3, $4)',
-			[establishmentId, 'Token Test Shop', 'hash456', 9]
+			'INSERT INTO establishments (id, name, grid_size) VALUES ($1, $2, $3)',
+			[establishmentId, 'Token Test Shop', 9]
 		);
 
 		// Create transaction
@@ -162,8 +161,8 @@ describe.skipIf(!(await canConnect()))('Database Integration Tests', () => {
 
 		// Create establishment
 		await pool.query(
-			'INSERT INTO establishments (id, name, password_hash, grid_size) VALUES ($1, $2, $3, $4)',
-			[establishmentId, 'Analytics Test Shop', 'hash789', 9]
+			'INSERT INTO establishments (id, name, grid_size) VALUES ($1, $2, $3)',
+			[establishmentId, 'Analytics Test Shop', 9]
 		);
 
 		// Create transactions and redemptions
@@ -236,8 +235,8 @@ describe.skipIf(!(await canConnect()))('Database Integration Tests', () => {
 
 		// Create establishment
 		await pool.query(
-			'INSERT INTO establishments (id, name, password_hash, grid_size) VALUES ($1, $2, $3, $4)',
-			[establishmentId, 'Unique Test Shop', 'hash999', 9]
+			'INSERT INTO establishments (id, name, grid_size) VALUES ($1, $2, $3)',
+			[establishmentId, 'Unique Test Shop', 9]
 		);
 
 		// Create first transaction

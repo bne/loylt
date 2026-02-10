@@ -1,8 +1,25 @@
 export interface Establishment {
 	id: string;
 	name: string;
-	password_hash: string;
 	grid_size: number;
+	created_at: Date;
+}
+
+export type AdminRole = 'establishment_admin' | 'superuser';
+
+export interface AdminUser {
+	id: string;
+	email: string;
+	password_hash: string;
+	role: AdminRole;
+	establishment_id: string | null;
+	created_at: Date;
+}
+
+export interface Session {
+	id: string;
+	user_id: string;
+	expires_at: Date;
 	created_at: Date;
 }
 

@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 
 	let name = $state('');
+	let email = $state('');
 	let password = $state('');
 	let confirmPassword = $state('');
 	let loading = $state(false);
@@ -29,14 +30,15 @@
 			const response = await fetch('/api/establishments/create', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ name, password })
+				body: JSON.stringify({ name, email, password })
 			});
 
+			const data = await response.json();
+
 			if (!response.ok) {
-				throw new Error('Failed to create establishment');
+				throw new Error(data.error || 'Failed to create establishment');
 			}
 
-			const data = await response.json();
 			result = {
 				id: data.id,
 				adminUrl: `${window.location.origin}/admin/${data.id}`
@@ -69,6 +71,17 @@
 						id="name"
 						bind:value={name}
 						placeholder="e.g., Joe's Coffee Shop"
+						required
+					/>
+				</div>
+
+				<div class="form-group">
+					<label for="email">Admin Email</label>
+					<input
+						type="email"
+						id="email"
+						bind:value={email}
+						placeholder="you@example.com"
 						required
 					/>
 				</div>

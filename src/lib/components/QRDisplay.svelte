@@ -86,7 +86,7 @@
 			</button>
 		</div>
 		<p class="hint">
-			Customers scan this code to receive a stamp. Generate a new one for each transaction.
+			Customers scan this code to receive a stamp.
 		</p>
 	{/if}
 </div>

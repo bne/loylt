@@ -103,54 +103,40 @@ describe('Customer Stamp Flow', () => {
 });
 
 describe('Admin Authentication Flow', () => {
-	beforeEach(() => {
-		sessionStorage.clear();
-		vi.clearAllMocks();
+	it('should validate login request structure', () => {
+		const loginRequest = { email: 'admin@test.com', password: 'test123' };
+
+		expect(loginRequest.email).toContain('@');
+		expect(loginRequest.password.length).toBeGreaterThanOrEqual(6);
 	});
 
-	it('should store authentication in session', () => {
-		const establishmentId = 'test-est-123';
-		const authKey = `loylt_auth_${establishmentId}`;
+	it('should redirect based on user role', () => {
+		const getRedirectUrl = (role: string, establishmentId: string | null) => {
+			if (role === 'superuser') return '/admin';
+			return `/admin/${establishmentId}`;
+		};
 
-		sessionStorage.setItem(authKey, 'true');
-
-		expect(sessionStorage.getItem(authKey)).toBe('true');
+		expect(getRedirectUrl('superuser', null)).toBe('/admin');
+		expect(getRedirectUrl('establishment_admin', 'est-123')).toBe('/admin/est-123');
 	});
 
-	it('should check authentication on page load', () => {
-		const establishmentId = 'test-est-123';
-		const authKey = `loylt_auth_${establishmentId}`;
+	it('should enforce access control per establishment', () => {
+		const canAccess = (userRole: string, userEstId: string | null, targetEstId: string) => {
+			if (userRole === 'superuser') return true;
+			return userEstId === targetEstId;
+		};
 
-		// Set authenticated
-		sessionStorage.setItem(authKey, 'true');
-
-		// Check on reload
-		const isAuthenticated = sessionStorage.getItem(authKey) === 'true';
-
-		expect(isAuthenticated).toBe(true);
+		expect(canAccess('superuser', null, 'est-123')).toBe(true);
+		expect(canAccess('establishment_admin', 'est-123', 'est-123')).toBe(true);
+		expect(canAccess('establishment_admin', 'est-123', 'est-456')).toBe(false);
 	});
 
-	it('should clear authentication on logout', () => {
-		const establishmentId = 'test-est-123';
-		const authKey = `loylt_auth_${establishmentId}`;
+	it('should prevent self-removal from admin list', () => {
+		const currentUserId = 'user-1';
+		const targetUserId = 'user-1';
 
-		// Set authenticated
-		sessionStorage.setItem(authKey, 'true');
-
-		// Logout
-		sessionStorage.removeItem(authKey);
-
-		expect(sessionStorage.getItem(authKey)).toBeNull();
-	});
-
-	it('should keep auth separate per establishment', () => {
-		const est1 = 'establishment-1';
-		const est2 = 'establishment-2';
-
-		sessionStorage.setItem(`loylt_auth_${est1}`, 'true');
-
-		expect(sessionStorage.getItem(`loylt_auth_${est1}`)).toBe('true');
-		expect(sessionStorage.getItem(`loylt_auth_${est2}`)).toBeNull();
+		const canRemove = currentUserId !== targetUserId;
+		expect(canRemove).toBe(false);
 	});
 });
 
