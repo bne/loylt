@@ -47,10 +47,21 @@ describe.skipIf(!(await canConnect()))('Database Integration Tests', () => {
 				used_at TIMESTAMP
 			)
 		`);
+
+		await pool.query(`
+			CREATE TABLE IF NOT EXISTS token_redemptions (
+				id UUID PRIMARY KEY,
+				transaction_id UUID NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
+				customer_guid UUID NOT NULL,
+				redeemed_at TIMESTAMP DEFAULT NOW(),
+				UNIQUE(transaction_id, customer_guid)
+			)
+		`);
 	});
 
 	afterAll(async () => {
 		// Clean up test data
+		await pool.query('DROP TABLE IF EXISTS token_redemptions CASCADE');
 		await pool.query('DROP TABLE IF EXISTS transactions CASCADE');
 		await pool.query('DROP TABLE IF EXISTS establishments CASCADE');
 		await pool.end();
@@ -92,30 +103,56 @@ describe.skipIf(!(await canConnect()))('Database Integration Tests', () => {
 			[tokenId, token, establishmentId]
 		);
 
-		// Validate token
+		// Validate token exists
 		const result = await pool.query(
-			'SELECT * FROM transactions WHERE token = $1 AND used = false',
+			'SELECT * FROM transactions WHERE token = $1',
 			[token]
 		);
 
 		expect(result.rows).toHaveLength(1);
 		expect(result.rows[0].establishment_id).toBe(establishmentId);
-		expect(result.rows[0].used).toBe(false);
 
-		// Mark as used
+		// Check no existing redemption for this customer
+		const existingRedemption = await pool.query(
+			'SELECT * FROM token_redemptions WHERE transaction_id = $1 AND customer_guid = $2',
+			[tokenId, customerGuid]
+		);
+		expect(existingRedemption.rows).toHaveLength(0);
+
+		// Record redemption
 		await pool.query(
-			'UPDATE transactions SET used = true, customer_guid = $1, used_at = NOW() WHERE id = $2',
-			[customerGuid, tokenId]
+			'INSERT INTO token_redemptions (id, transaction_id, customer_guid, redeemed_at) VALUES ($1, $2, $3, NOW())',
+			[randomUUID(), tokenId, customerGuid]
 		);
 
-		// Verify it's marked as used
-		const usedResult = await pool.query(
-			'SELECT * FROM transactions WHERE token = $1',
-			[token]
+		// Verify redemption recorded
+		const redemptionResult = await pool.query(
+			'SELECT * FROM token_redemptions WHERE transaction_id = $1 AND customer_guid = $2',
+			[tokenId, customerGuid]
+		);
+		expect(redemptionResult.rows).toHaveLength(1);
+		expect(redemptionResult.rows[0].customer_guid).toBe(customerGuid);
+
+		// A different customer should still be able to redeem the same token
+		const customer2Guid = randomUUID();
+		await pool.query(
+			'INSERT INTO token_redemptions (id, transaction_id, customer_guid, redeemed_at) VALUES ($1, $2, $3, NOW())',
+			[randomUUID(), tokenId, customer2Guid]
 		);
 
-		expect(usedResult.rows[0].used).toBe(true);
-		expect(usedResult.rows[0].customer_guid).toBe(customerGuid);
+		const allRedemptions = await pool.query(
+			'SELECT * FROM token_redemptions WHERE transaction_id = $1',
+			[tokenId]
+		);
+		expect(allRedemptions.rows).toHaveLength(2);
+
+		// Same customer should not be able to redeem twice (unique constraint)
+		await expect(
+			pool.query(
+				'INSERT INTO token_redemptions (id, transaction_id, customer_guid, redeemed_at) VALUES ($1, $2, $3, NOW())',
+				[randomUUID(), tokenId, customerGuid]
+			)
+		).rejects.toThrow();
 	});
 
 	it('should calculate analytics correctly', async () => {
@@ -129,24 +166,36 @@ describe.skipIf(!(await canConnect()))('Database Integration Tests', () => {
 			[establishmentId, 'Analytics Test Shop', 'hash789', 9]
 		);
 
-		// Create transactions
+		// Create transactions and redemptions
 		for (let i = 0; i < 5; i++) {
+			const transId = randomUUID();
 			await pool.query(
-				'INSERT INTO transactions (id, token, establishment_id, customer_guid, used) VALUES ($1, $2, $3, $4, true)',
-				[randomUUID(), `token-${Date.now()}-${i}`, establishmentId, customerGuid1]
+				'INSERT INTO transactions (id, token, establishment_id) VALUES ($1, $2, $3)',
+				[transId, `token-${Date.now()}-a${i}`, establishmentId]
+			);
+			await pool.query(
+				'INSERT INTO token_redemptions (id, transaction_id, customer_guid, redeemed_at) VALUES ($1, $2, $3, NOW())',
+				[randomUUID(), transId, customerGuid1]
 			);
 		}
 
-		for (let i = 5; i < 8; i++) {
+		for (let i = 0; i < 3; i++) {
+			const transId = randomUUID();
 			await pool.query(
-				'INSERT INTO transactions (id, token, establishment_id, customer_guid, used) VALUES ($1, $2, $3, $4, true)',
-				[randomUUID(), `token-${Date.now()}-${i}`, establishmentId, customerGuid2]
+				'INSERT INTO transactions (id, token, establishment_id) VALUES ($1, $2, $3)',
+				[transId, `token-${Date.now()}-b${i}`, establishmentId]
+			);
+			await pool.query(
+				'INSERT INTO token_redemptions (id, transaction_id, customer_guid, redeemed_at) VALUES ($1, $2, $3, NOW())',
+				[randomUUID(), transId, customerGuid2]
 			);
 		}
 
-		// Get total stamps
+		// Get total stamps via token_redemptions
 		const totalResult = await pool.query(
-			'SELECT COUNT(*) as count FROM transactions WHERE establishment_id = $1 AND used = true',
+			`SELECT COUNT(*) as count FROM token_redemptions r
+			JOIN transactions t ON r.transaction_id = t.id
+			WHERE t.establishment_id = $1`,
 			[establishmentId]
 		);
 
@@ -154,10 +203,11 @@ describe.skipIf(!(await canConnect()))('Database Integration Tests', () => {
 
 		// Get per-customer stats
 		const customerResult = await pool.query(
-			`SELECT customer_guid, COUNT(*) as count
-			FROM transactions
-			WHERE establishment_id = $1 AND used = true AND customer_guid IS NOT NULL
-			GROUP BY customer_guid
+			`SELECT r.customer_guid, COUNT(*) as count
+			FROM token_redemptions r
+			JOIN transactions t ON r.transaction_id = t.id
+			WHERE t.establishment_id = $1
+			GROUP BY r.customer_guid
 			ORDER BY count DESC`,
 			[establishmentId]
 		);

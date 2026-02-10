@@ -33,6 +33,17 @@ async function migrate() {
 			)
 		`);
 
+		// Create token_redemptions table (tracks per-customer redemptions)
+		await client.query(`
+			CREATE TABLE IF NOT EXISTS token_redemptions (
+				id UUID PRIMARY KEY,
+				transaction_id UUID NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
+				customer_guid UUID NOT NULL,
+				redeemed_at TIMESTAMP DEFAULT NOW(),
+				UNIQUE(transaction_id, customer_guid)
+			)
+		`);
+
 		// Create indexes
 		await client.query(`
 			CREATE INDEX IF NOT EXISTS idx_transactions_token ON transactions(token)
@@ -42,6 +53,12 @@ async function migrate() {
 		`);
 		await client.query(`
 			CREATE INDEX IF NOT EXISTS idx_transactions_customer ON transactions(customer_guid)
+		`);
+		await client.query(`
+			CREATE INDEX IF NOT EXISTS idx_token_redemptions_transaction ON token_redemptions(transaction_id)
+		`);
+		await client.query(`
+			CREATE INDEX IF NOT EXISTS idx_token_redemptions_customer ON token_redemptions(customer_guid)
 		`);
 
 		await client.query('COMMIT');

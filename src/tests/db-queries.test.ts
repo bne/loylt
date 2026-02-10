@@ -154,7 +154,7 @@ describe('Database Queries', () => {
 	});
 
 	describe('validateAndUseToken', () => {
-		it('should return valid true and mark token as used', async () => {
+		it('should return valid true and insert redemption for new customer', async () => {
 			const mockTransaction = {
 				id: 'trans-123',
 				token: 'token123',
@@ -166,17 +166,28 @@ describe('Database Queries', () => {
 			};
 
 			vi.mocked(query)
-				.mockResolvedValueOnce([mockTransaction])
-				.mockResolvedValueOnce([]);
+				.mockResolvedValueOnce([mockTransaction]) // SELECT transaction
+				.mockResolvedValueOnce([])                // SELECT existing redemption (none)
+				.mockResolvedValueOnce([]);               // INSERT redemption
 
 			const result = await queries.validateAndUseToken('token123', 'customer-guid');
 
 			expect(result).toEqual({ valid: true, establishmentId: 'est-456' });
-			expect(query).toHaveBeenCalledTimes(2);
+			expect(query).toHaveBeenCalledTimes(3);
+			expect(query).toHaveBeenNthCalledWith(
+				1,
+				'SELECT * FROM transactions WHERE token = $1',
+				['token123']
+			);
 			expect(query).toHaveBeenNthCalledWith(
 				2,
-				'UPDATE transactions SET used = true, customer_guid = $1, used_at = NOW() WHERE id = $2',
-				['customer-guid', 'trans-123']
+				'SELECT * FROM token_redemptions WHERE transaction_id = $1 AND customer_guid = $2',
+				['trans-123', 'customer-guid']
+			);
+			expect(query).toHaveBeenNthCalledWith(
+				3,
+				'INSERT INTO token_redemptions (id, transaction_id, customer_guid, redeemed_at) VALUES ($1, $2, $3, NOW())',
+				[expect.any(String), 'trans-123', 'customer-guid']
 			);
 		});
 
@@ -189,22 +200,53 @@ describe('Database Queries', () => {
 			expect(query).toHaveBeenCalledTimes(1);
 		});
 
-		it('should return valid false when token already used', async () => {
+		it('should return valid false with alreadyRedeemed when same customer reuses token', async () => {
 			const mockTransaction = {
 				id: 'trans-123',
 				token: 'token123',
 				establishment_id: 'est-456',
-				customer_guid: 'prev-customer',
-				used: true,
+				customer_guid: null,
+				used: false,
 				created_at: new Date(),
-				used_at: new Date()
+				used_at: null
 			};
 
-			vi.mocked(query).mockResolvedValueOnce([]);
+			const mockRedemption = {
+				id: 'redemption-1',
+				transaction_id: 'trans-123',
+				customer_guid: 'customer-guid',
+				redeemed_at: new Date()
+			};
+
+			vi.mocked(query)
+				.mockResolvedValueOnce([mockTransaction]) // SELECT transaction
+				.mockResolvedValueOnce([mockRedemption]); // SELECT existing redemption (found)
 
 			const result = await queries.validateAndUseToken('token123', 'customer-guid');
 
-			expect(result).toEqual({ valid: false });
+			expect(result).toEqual({ valid: false, alreadyRedeemed: true });
+			expect(query).toHaveBeenCalledTimes(2);
+		});
+
+		it('should allow different customers to use the same token', async () => {
+			const mockTransaction = {
+				id: 'trans-123',
+				token: 'token123',
+				establishment_id: 'est-456',
+				customer_guid: null,
+				used: false,
+				created_at: new Date(),
+				used_at: null
+			};
+
+			vi.mocked(query)
+				.mockResolvedValueOnce([mockTransaction]) // SELECT transaction
+				.mockResolvedValueOnce([])                // SELECT existing redemption (none for customer-2)
+				.mockResolvedValueOnce([]);               // INSERT redemption
+
+			const result = await queries.validateAndUseToken('token123', 'customer-2');
+
+			expect(result).toEqual({ valid: true, establishmentId: 'est-456' });
 		});
 	});
 
@@ -229,6 +271,16 @@ describe('Database Queries', () => {
 					{ guid: 'customer-2', stampCount: 7 }
 				]
 			});
+			expect(query).toHaveBeenNthCalledWith(
+				1,
+				expect.stringContaining('token_redemptions'),
+				['est-123']
+			);
+			expect(query).toHaveBeenNthCalledWith(
+				2,
+				expect.stringContaining('token_redemptions'),
+				['est-123']
+			);
 		});
 
 		it('should handle zero stamps', async () => {

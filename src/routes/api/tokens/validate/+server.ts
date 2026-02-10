@@ -13,7 +13,10 @@ export const POST: RequestHandler = async ({ request }) => {
 		const result = await validateAndUseToken(token, customerGuid);
 
 		if (!result.valid) {
-			return json({ error: 'Invalid or already used token' }, { status: 400 });
+			const message = result.alreadyRedeemed
+				? 'You have already used this token'
+				: 'Invalid token';
+			return json({ error: message }, { status: 400 });
 		}
 
 		return json({

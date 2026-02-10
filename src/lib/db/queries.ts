@@ -1,5 +1,5 @@
 import { query } from './connection';
-import type { Establishment, Transaction } from './types';
+import type { Establishment, TokenRedemption, Transaction } from './types';
 
 export async function getEstablishment(id: string): Promise<Establishment | null> {
 	const results = await query<Establishment>(
@@ -73,9 +73,10 @@ export async function createTransaction(
 export async function validateAndUseToken(
 	token: string,
 	customerGuid: string
-): Promise<{ valid: boolean; establishmentId?: string }> {
+): Promise<{ valid: boolean; establishmentId?: string; alreadyRedeemed?: boolean }> {
+	// Find the transaction by token (no used-flag filter — tokens are reusable)
 	const results = await query<Transaction>(
-		'SELECT * FROM transactions WHERE token = $1 AND used = false',
+		'SELECT * FROM transactions WHERE token = $1',
 		[token]
 	);
 
@@ -85,9 +86,21 @@ export async function validateAndUseToken(
 
 	const transaction = results[0];
 
+	// Check if this customer already redeemed this token
+	const existing = await query<TokenRedemption>(
+		'SELECT * FROM token_redemptions WHERE transaction_id = $1 AND customer_guid = $2',
+		[transaction.id, customerGuid]
+	);
+
+	if (existing.length > 0) {
+		return { valid: false, alreadyRedeemed: true };
+	}
+
+	// Record the redemption
+	const redemptionId = crypto.randomUUID();
 	await query(
-		'UPDATE transactions SET used = true, customer_guid = $1, used_at = NOW() WHERE id = $2',
-		[customerGuid, transaction.id]
+		'INSERT INTO token_redemptions (id, transaction_id, customer_guid, redeemed_at) VALUES ($1, $2, $3, NOW())',
+		[redemptionId, transaction.id, customerGuid]
 	);
 
 	return { valid: true, establishmentId: transaction.establishment_id };
@@ -95,15 +108,18 @@ export async function validateAndUseToken(
 
 export async function getEstablishmentAnalytics(establishmentId: string) {
 	const totalStamps = await query<{ count: string }>(
-		'SELECT COUNT(*) as count FROM transactions WHERE establishment_id = $1 AND used = true',
+		`SELECT COUNT(*) as count FROM token_redemptions r
+		JOIN transactions t ON r.transaction_id = t.id
+		WHERE t.establishment_id = $1`,
 		[establishmentId]
 	);
 
 	const customerStats = await query<{ customer_guid: string; count: string }>(
-		`SELECT customer_guid, COUNT(*) as count
-		FROM transactions
-		WHERE establishment_id = $1 AND used = true AND customer_guid IS NOT NULL
-		GROUP BY customer_guid
+		`SELECT r.customer_guid, COUNT(*) as count
+		FROM token_redemptions r
+		JOIN transactions t ON r.transaction_id = t.id
+		WHERE t.establishment_id = $1
+		GROUP BY r.customer_guid
 		ORDER BY count DESC`,
 		[establishmentId]
 	);

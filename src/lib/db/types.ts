@@ -15,3 +15,10 @@ export interface Transaction {
 	created_at: Date;
 	used_at: Date | null;
 }
+
+export interface TokenRedemption {
+	id: string;
+	transaction_id: string;
+	customer_guid: string;
+	redeemed_at: Date;
+}
