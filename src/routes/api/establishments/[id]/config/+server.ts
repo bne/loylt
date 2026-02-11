@@ -21,7 +21,8 @@ export const GET: RequestHandler = async ({ params }) => {
 			name: establishment.name,
 			gridSize: establishment.grid_size,
 			rewardText: establishment.reward_text,
-			rewardImageUrl: establishment.reward_image_url
+			rewardImageUrl: establishment.reward_image_url,
+			logoUrl: establishment.logo_url
 		});
 	} catch (error) {
 		console.error('Get establishment error:', error);

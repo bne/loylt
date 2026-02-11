@@ -4,6 +4,7 @@ export interface Establishment {
 	grid_size: number;
 	reward_text: string | null;
 	reward_image_url: string | null;
+	logo_url: string | null;
 	created_at: Date;
 }
 

@@ -14,7 +14,8 @@ export async function updateEstablishment(
 	name?: string,
 	gridSize?: number,
 	rewardText?: string | null,
-	rewardImageUrl?: string | null
+	rewardImageUrl?: string | null,
+	logoUrl?: string | null
 ): Promise<void> {
 	const updates: string[] = [];
 	const values: any[] = [];
@@ -35,6 +36,10 @@ export async function updateEstablishment(
 	if (rewardImageUrl !== undefined) {
 		updates.push(`reward_image_url = $${paramIndex++}`);
 		values.push(rewardImageUrl);
+	}
+	if (logoUrl !== undefined) {
+		updates.push(`logo_url = $${paramIndex++}`);
+		values.push(logoUrl);
 	}
 
 	if (updates.length > 0) {

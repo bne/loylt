@@ -31,6 +31,9 @@ async function migrate() {
 		await client.query(`
 			ALTER TABLE establishments ADD COLUMN IF NOT EXISTS reward_image_url TEXT
 		`);
+		await client.query(`
+			ALTER TABLE establishments ADD COLUMN IF NOT EXISTS logo_url TEXT
+		`);
 
 		// Create transactions table
 		await client.query(`

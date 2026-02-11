@@ -10,9 +10,14 @@
 	let gridSize = $state(data.establishment.gridSize);
 	let rewardText = $state(data.establishment.rewardText || '');
 	let rewardImageUrl = $state(data.establishment.rewardImageUrl || '');
+	let logoUrl = $state(data.establishment.logoUrl || '');
 	let error = $state('');
 	let successMessage = $state('');
 	let loading = $state(false);
+
+	// Logo upload
+	let logoUploading = $state(false);
+	let logoError = $state('');
 
 	// Admin management
 	let newAdminEmail = $state('');
@@ -52,6 +57,71 @@
 			error = err instanceof Error ? err.message : 'Update failed';
 		} finally {
 			loading = false;
+		}
+	}
+
+	async function handleLogoUpload(e: Event) {
+		const input = e.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+
+		logoError = '';
+
+		if (file.size > 250 * 1024) {
+			logoError = 'File too large. Maximum size is 250KB.';
+			input.value = '';
+			return;
+		}
+
+		if (!file.type.startsWith('image/')) {
+			logoError = 'File must be an image.';
+			input.value = '';
+			return;
+		}
+
+		logoUploading = true;
+		try {
+			const formData = new FormData();
+			formData.append('file', file);
+
+			const response = await fetch(`/api/establishments/${establishmentId}/logo`, {
+				method: 'PUT',
+				body: formData
+			});
+
+			if (!response.ok) {
+				const data = await response.json();
+				throw new Error(data.error || 'Failed to upload logo');
+			}
+
+			const data = await response.json();
+			logoUrl = data.logoUrl;
+		} catch (err) {
+			logoError = err instanceof Error ? err.message : 'Upload failed';
+		} finally {
+			logoUploading = false;
+			input.value = '';
+		}
+	}
+
+	async function handleLogoRemove() {
+		logoError = '';
+		logoUploading = true;
+		try {
+			const response = await fetch(`/api/establishments/${establishmentId}/logo`, {
+				method: 'DELETE'
+			});
+
+			if (!response.ok) {
+				const data = await response.json();
+				throw new Error(data.error || 'Failed to remove logo');
+			}
+
+			logoUrl = '';
+		} catch (err) {
+			logoError = err instanceof Error ? err.message : 'Remove failed';
+		} finally {
+			logoUploading = false;
 		}
 	}
 
@@ -131,6 +201,37 @@
 
 		<section class="card">
 			<h2>Settings</h2>
+
+			<div class="logo-section">
+				<label>Establishment Logo</label>
+				{#if logoUrl}
+					<div class="logo-preview">
+						<img src={logoUrl} alt="Establishment logo" />
+					</div>
+				{/if}
+				<div class="logo-actions">
+					<label class="file-upload-btn" class:disabled={logoUploading}>
+						{logoUploading ? 'Uploading...' : logoUrl ? 'Replace Logo' : 'Upload Logo'}
+						<input
+							type="file"
+							accept="image/*"
+							onchange={handleLogoUpload}
+							disabled={logoUploading}
+							hidden
+						/>
+					</label>
+					{#if logoUrl}
+						<button type="button" class="remove-logo-btn" onclick={handleLogoRemove} disabled={logoUploading}>
+							Remove
+						</button>
+					{/if}
+				</div>
+				<small class="hint">Max 250KB. Appears on the stamp card.</small>
+				{#if logoError}
+					<div class="error">{logoError}</div>
+				{/if}
+			</div>
+
 			<form onsubmit={handleUpdate}>
 				<div class="form-group">
 					<label for="name">Establishment Name</label>
@@ -467,5 +568,68 @@
 
 	.add-admin-form {
 		margin-top: 0.5rem;
+	}
+
+	.logo-section {
+		margin-bottom: 1.5rem;
+		padding-bottom: 1.5rem;
+		border-bottom: 1px solid #e5e7eb;
+	}
+
+	.logo-preview {
+		margin: 0.75rem 0;
+		display: flex;
+		justify-content: center;
+		padding: 1rem;
+		background: #f9fafb;
+		border-radius: 8px;
+		border: 1px solid #e5e7eb;
+	}
+
+	.logo-preview img {
+		max-height: 80px;
+		max-width: 100%;
+		object-fit: contain;
+	}
+
+	.logo-actions {
+		display: flex;
+		gap: 0.5rem;
+		margin: 0.5rem 0;
+	}
+
+	.file-upload-btn {
+		display: inline-block;
+		padding: 0.5rem 1rem;
+		background: #0ea5e9;
+		color: white;
+		border-radius: 6px;
+		font-size: 0.875rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: background 0.2s;
+		text-align: center;
+	}
+
+	.file-upload-btn:hover:not(.disabled) {
+		background: #0284c7;
+	}
+
+	.file-upload-btn.disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	.remove-logo-btn {
+		width: auto;
+		padding: 0.5rem 1rem;
+		background: white;
+		color: #d32f2f;
+		border: 1px solid #ffcdd2;
+		font-size: 0.875rem;
+	}
+
+	.remove-logo-btn:hover:not(:disabled) {
+		background: #ffebee;
 	}
 </style>

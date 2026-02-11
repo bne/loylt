@@ -23,7 +23,8 @@ export const load: PageServerLoad = async ({ params, parent }) => {
 			name: establishment.name,
 			gridSize: establishment.grid_size,
 			rewardText: establishment.reward_text,
-			rewardImageUrl: establishment.reward_image_url
+			rewardImageUrl: establishment.reward_image_url,
+			logoUrl: establishment.logo_url
 		},
 		admins: admins.map(a => ({
 			id: a.id,

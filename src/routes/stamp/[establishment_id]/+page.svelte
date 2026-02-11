@@ -5,7 +5,7 @@
 
 	let { data } = $props();
 
-	let establishment = $state<{ id: string; name: string; gridSize: number; rewardText: string | null; rewardImageUrl: string | null } | null>(null);
+	let establishment = $state<{ id: string; name: string; gridSize: number; rewardText: string | null; rewardImageUrl: string | null; logoUrl: string | null } | null>(null);
 	let stampCount = $state(0);
 	let loading = $state(true);
 	let error = $state('');
@@ -79,6 +79,11 @@
 		<div class="error">{error}</div>
 	{:else if establishment}
 		<header>
+			{#if establishment.logoUrl}
+				<div class="logo">
+					<img src={establishment.logoUrl} alt="{establishment.name} logo" />
+				</div>
+			{/if}
 			<h1>{establishment.name}</h1>
 			<p class="progress">{stampCount} / {establishment.gridSize} stamps</p>
 		</header>
@@ -129,6 +134,16 @@
 	header {
 		text-align: center;
 		margin-bottom: 2rem;
+	}
+
+	.logo {
+		margin-bottom: 1rem;
+	}
+
+	.logo img {
+		max-height: 80px;
+		max-width: 200px;
+		object-fit: contain;
 	}
 
 	h1 {
