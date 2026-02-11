@@ -26,9 +26,10 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
+    env_file:
+      - .env.local
     environment:
-      DATABASE_URL: postgresql://loylt:loylt_dev@postgres:5432/loylt
-      PASSWORD_SALT: dev_salt_change_in_production
+      - DATABASE_URL=postgresql://loylt:loylt_dev@postgres:5432/loylt
     depends_on:
       postgres:
         condition: service_healthy

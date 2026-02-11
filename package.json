@@ -10,9 +10,9 @@
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"migrate": "node --env-file .env scripts/migrate.js",
-		"seed": "node --env-file .env scripts/seed.js",
-		"create-superuser": "node --env-file .env scripts/create-superuser.js",
+		"migrate": "node --env-file .env.local scripts/migrate.js",
+		"seed": "node --env-file .env.local scripts/seed.js",
+		"create-superuser": "node --env-file .env.local scripts/create-superuser.js",
 		"test": "vitest",
 		"test:ui": "vitest --ui",
 		"test:coverage": "vitest --coverage"

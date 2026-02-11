@@ -175,7 +175,7 @@ Tracks per-customer redemptions. Multiple customers can redeem the same token, b
 
 ## Environment Variables
 
-Development (`.env`):
+Development (`.env.local`):
 
 ```sh
 DATABASE_URL=postgresql://loylt:loylt_dev@localhost:5432/loylt
