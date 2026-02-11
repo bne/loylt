@@ -49,7 +49,8 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 
 		const blob = await put(`logos/${id}/${file.name}`, file, {
 			access: 'public',
-			contentType: file.type
+			contentType: file.type,
+			addRandomSuffix: true
 		});
 
 		await updateEstablishment(id, undefined, undefined, undefined, undefined, blob.url);

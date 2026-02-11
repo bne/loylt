@@ -207,7 +207,7 @@ PASSWORD_SALT=<secure-random-salt>
    vercel env pull .env.production.local
 
    # Run migrations using production database
-   DATABASE_URL=$(grep POSTGRES_URL .env.production.local | cut -d '=' -f2-) node scripts/migrate.js
+   set -a && source .env.production.local && set +a && DATABASE_URL="$POSTGRES_URL" node scripts/migrate.js
    ```
 
    **Verify migrations**:
